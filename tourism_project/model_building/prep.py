@@ -1,48 +1,64 @@
+%%writefile tourism_project/model_building/prep.py
 # for data manipulation
 import pandas as pd
-import sklearn
-# for creating a folder
 import os
-# for data preprocessing and pipeline creation
-from sklearn.model_selection import train_test_split
-# for converting text data in to numerical representation
-from sklearn.preprocessing import LabelEncoder
-# for hugging face space authentication to upload files
-from huggingface_hub import login, HfApi
 
-# Define constants for the dataset and output paths
+# for data preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder
+
+# huggingface
+from huggingface_hub import HfApi
+
+# HuggingFace authentication
 api = HfApi(token=os.getenv("HF_TOKEN"))
+
+# Dataset path
 DATASET_PATH = "hf://datasets/agmsk86/Tourism_Package_Prediction_mohan/tourism.csv"
+
+# Load dataset
 df = pd.read_csv(DATASET_PATH)
 print("Dataset loaded successfully.")
 
-# Encoding the categorical 'Type' column
+# Drop CustomerID (not useful for ML)
+if "CustomerID" in df.columns:
+    df = df.drop(columns=["CustomerID"])
+
+# Encode categorical columns
+categorical_cols = df.select_dtypes(include="object").columns
+
 label_encoder = LabelEncoder()
-df['Type'] = label_encoder.fit_transform(df['Type'])
 
-target_col = 'Failure'
+for col in categorical_cols:
+    df[col] = label_encoder.fit_transform(df[col].astype(str))
 
-# Split into X (features) and y (target)
+# Target column
+target_col = "ProdTaken"
+
+# Split features and target
 X = df.drop(columns=[target_col])
 y = df[target_col]
 
-# Perform train-test split
+# Train-test split
 Xtrain, Xtest, ytrain, ytest = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-Xtrain.to_csv("Xtrain.csv",index=False)
-Xtest.to_csv("Xtest.csv",index=False)
-ytrain.to_csv("ytrain.csv",index=False)
-ytest.to_csv("ytest.csv",index=False)
+# Save files
+Xtrain.to_csv("Xtrain.csv", index=False)
+Xtest.to_csv("Xtest.csv", index=False)
+ytrain.to_csv("ytrain.csv", index=False)
+ytest.to_csv("ytest.csv", index=False)
 
-
-files = ["Xtrain.csv","Xtest.csv","ytrain.csv","ytest.csv"]
+# Upload files to HuggingFace
+files = ["Xtrain.csv", "Xtest.csv", "ytrain.csv", "ytest.csv"]
 
 for file_path in files:
     api.upload_file(
         path_or_fileobj=file_path,
-        path_in_repo=file_path.split("/")[-1],  # just the filename
+        path_in_repo=file_path,
         repo_id="agmsk86/Tourism_Package_Prediction_mohan",
         repo_type="dataset",
     )
+
+print("Files uploaded successfully.")
