@@ -16,9 +16,6 @@ DATASET_PATH = "hf://datasets/agmsk86/Tourism_Package_Prediction_mohan/tourism.c
 df = pd.read_csv(DATASET_PATH)
 print("Dataset loaded successfully.")
 
-# Drop the unique identifier
-df.drop(columns=['UDI'], inplace=True)
-
 # Encoding the categorical 'Type' column
 label_encoder = LabelEncoder()
 df['Type'] = label_encoder.fit_transform(df['Type'])
